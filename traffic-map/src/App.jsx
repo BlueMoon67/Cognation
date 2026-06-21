@@ -118,9 +118,9 @@ function detectLatLon(row) {
 }
 
 function getColorForScore(score) {
-  if (score >= 75) return "#b30000";
-  if (score >=50) return "#e85141";
-  if (score >= 25)   return "#f7b32b";
+  if (score >= 40) return "#b30000";
+  if (score >=25) return "#e85141";
+  if (score >= 10)   return "#f7b32b";
   if (score >= 0) return "#5ea64b";
   return "#3f8dcd";
 }

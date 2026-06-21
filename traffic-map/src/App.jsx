@@ -93,7 +93,7 @@ function parsePoint(item) {
     number_vehicle: parseFloat(item.number_vehicle ?? 0),
     type_score: parseFloat(item.type_score ?? 0),
     violation_score: parseFloat(item.violation_score ?? 0),
-    final_score: parseFloat(item.final_score ?? 0),
+    final_score: (parseFloat(item.final_score ?? 0))*100,
     raw: item,
   };
 }

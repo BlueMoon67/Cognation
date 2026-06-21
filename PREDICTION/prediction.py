@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Any
 
 import joblib
+import pandas as pd
+
 
 def locate_model_dir() -> Path:
     current = Path(__file__).resolve().parent
@@ -18,6 +20,7 @@ def locate_model_dir() -> Path:
         "Could not locate model directory. Checked: "
         + ", ".join(str(c) for c in candidates)
     )
+
 
 MODEL_DIR = locate_model_dir()
 MODEL_METADATA = {
@@ -62,7 +65,7 @@ def predict(model_key: str, values: dict[str, Any]) -> Any:
     features = metadata["features"]
 
     try:
-        X = [[values[feature] for feature in features]]
+        X = pd.DataFrame([[values[feature] for feature in features]], columns=features)
     except KeyError as exc:
         raise ValueError(f"Missing feature for model '{model_key}': {exc.args[0]}") from exc
 
@@ -92,4 +95,3 @@ if __name__ == "__main__":
             print(f"Prediction ({key}): {prediction}")
         except Exception as exc:
             print(f"Failed to predict for '{key}': {exc}")
-

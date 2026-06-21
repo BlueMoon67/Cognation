@@ -1,0 +1,9 @@
+primary_ratio,secondary_ratio,service_ratio,primary_count,secondary_count,service_count,intersection_count,road_count,avg_degree,traffic_signal_count,roundabout_count,lat_grid,lon_grid,lat_grid_rounded,lon_grid_rounded,unique_junction_count
+,,,,,,,,,,,12.925,77.615,12.925,77.615,1.0
+,,,,,,,,,,,12.905,77.7,12.905,77.7,0.0
+,,,,,,,,,,,12.955,77.515,12.955,77.515,0.0
+,,,,,,,,,,,12.975,77.58,12.975,77.58,1.0
+,,,,,,,,,,,12.98,77.605,12.98,77.605,2.0
+,,,,,,,,,,,12.995,77.61,12.995,77.61,1.0
+,,,,,,,,,,,12.995,77.54,12.995,77.54,1.0
+,,,,,,,,,,,12.975,77.595,12.975,77.595,0.0

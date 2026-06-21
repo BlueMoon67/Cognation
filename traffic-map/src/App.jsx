@@ -118,11 +118,12 @@ function detectLatLon(row) {
 }
 
 function getColorForScore(score) {
-  if (score >= 40) return "#b30000";
-  if (score >=25) return "#e85141";
-  if (score >= 10)   return "#f7b32b";
-  if (score >= 0) return "#5ea64b";
-  return "#3f8dcd";
+  if (score >= 90) return "#7f0000"; // Dark Red
+  if (score >= 80) return "#b30000"; // Red
+  if (score >= 60) return "#e34a33"; // Orange-Red
+  if (score >= 40) return "#fdbb2d"; // Orange
+  if (score >= 20) return "#fed976"; // Yellow
+  return "#31a354";                  // Green
 }
 
 function formatDist(m) {

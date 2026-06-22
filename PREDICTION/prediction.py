@@ -30,8 +30,23 @@ MODEL_DIR = locate_model_dir()
 GRID_STATIC_FEATURES_FILE = MODEL_DIR / "grid_static_features.csv"
 GRID_HOURLY_FEATURES_FILE = MODEL_DIR / "grid_hourly_features.csv"
 
+# number_vehicle and violation_score are unbounded, heavily right-skewed raw
+# values (counts / rates), not 0-1 scores like type_score or TrafficLive_score.
+# Combining them directly in a weighted sum makes the weights meaningless --
+# whichever grid has the larger raw value dominates final_score regardless
+# of its assigned weight, and the SAME final_score number means a different
+# thing depending on which grid produced it. These percentile reference
+# tables (built once from training data, see training/train_violation_models.py)
+# let us convert a raw prediction into "what fraction of all grids does this
+# beat or tie" -- a stable 0-1 score, robust to outliers, that can be safely
+# weighted alongside the other already-0-1 terms.
+NUMBER_VEHICLE_PERCENTILES_FILE = MODEL_DIR / "number_vehicle_percentiles.csv"
+VIOLATION_SCORE_PERCENTILES_FILE = MODEL_DIR / "violation_score_percentiles.csv"
+
 _GRID_STATIC_DF: pd.DataFrame | None = None
 _GRID_HOURLY_DF: pd.DataFrame | None = None
+_NUMBER_VEHICLE_PCTL: pd.DataFrame | None = None
+_VIOLATION_SCORE_PCTL: pd.DataFrame | None = None
 
 # Defaults used when a grid has no historical violation data on record
 # (e.g. a newly added grid). These represent "no observed activity" rather
@@ -47,6 +62,51 @@ HOURLY_DEFAULTS = {
     "weekend_fraction": 0.0,
     "avg_label_count": 0.0,
 }
+
+
+def _load_percentile_table(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Percentile reference file not found: {path}. "
+            "Run training/train_violation_models.py to regenerate it."
+        )
+    return pd.read_csv(path)
+
+
+def normalize_to_percentile(value: float, reference: pd.DataFrame, value_col: str) -> float:
+    """Map a raw prediction to its percentile (0.0-1.0) against the training
+    distribution stored in `reference`. Values beyond the observed min/max
+    are clamped to 0.0 / 1.0 rather than extrapolated.
+    """
+    values = reference[value_col].to_numpy()
+    if value <= values[0]:
+        return 0.0
+    if value >= values[-1]:
+        return 1.0
+    # values is monotonic by construction (percentile 0..100); find where
+    # `value` falls and interpolate within that percentile bucket.
+    idx = int(reference["percentile"].iloc[(values <= value).sum() - 1])
+    # linear interpolation between idx and idx+1 for smoother output
+    lower_val = values[idx]
+    upper_val = values[min(idx + 1, len(values) - 1)]
+    if upper_val == lower_val:
+        return idx / 100.0
+    frac = (value - lower_val) / (upper_val - lower_val)
+    return min(1.0, (idx + frac) / 100.0)
+
+
+def normalize_number_vehicle(value: float) -> float:
+    global _NUMBER_VEHICLE_PCTL
+    if _NUMBER_VEHICLE_PCTL is None:
+        _NUMBER_VEHICLE_PCTL = _load_percentile_table(NUMBER_VEHICLE_PERCENTILES_FILE)
+    return normalize_to_percentile(value, _NUMBER_VEHICLE_PCTL, "number_vehicle_value")
+
+
+def normalize_violation_score(value: float) -> float:
+    global _VIOLATION_SCORE_PCTL
+    if _VIOLATION_SCORE_PCTL is None:
+        _VIOLATION_SCORE_PCTL = _load_percentile_table(VIOLATION_SCORE_PERCENTILES_FILE)
+    return normalize_to_percentile(value, _VIOLATION_SCORE_PCTL, "violation_score_value")
 
 
 def _load_grid_static() -> pd.DataFrame:

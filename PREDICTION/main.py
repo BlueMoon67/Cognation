@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Iterable
 
 from Weather import predict_traffic_volume
-from prediction import predict
+from prediction import predict, normalize_number_vehicle, normalize_violation_score
 from TrafficLive import get_congestion
 from insert import save_prediction
 BASE_DIR = Path(__file__).resolve().parent
@@ -129,13 +129,46 @@ def predict_for_all_grids(grid_blocks: list[tuple[float, float]]) -> None:
                 },
             )
             TrafficLive_score = get_congestion(lat, lon)
-            print(f"  {lat:.6f},{lon:.6f} -> traffic_volume={traffic_volume}, number_vehicle={number_vehicle}, type_score={type_score}, violation_score={violation_score}, TrafficLive_score={TrafficLive_score}")
-            final_score = (
-                 (0.05 / 40000) * traffic_volume
-                + 0.2 * number_vehicle 
-                + (0.2) * type_score
-                + 0.1 * violation_score 
-                + 0.55 * TrafficLive_score
+
+            # number_vehicle and violation_score are raw, unbounded, skewed
+            # values (a count and a rate) -- not 0-1 scores like type_score
+            # and TrafficLive_score. Without normalizing them first, whichever
+            # term has the larger raw magnitude dominates final_score
+            # regardless of its assigned weight, and the same final_score
+            # value means a different thing at different grids. See
+            # prediction.py's normalize_* functions for details.
+            number_vehicle_norm = normalize_number_vehicle(number_vehicle)
+            violation_score_norm = normalize_violation_score(violation_score)
+
+            # TrafficLive_score is None when TomTom is unavailable (bad key,
+            # quota exhausted, network error) -- treat as "unknown" rather
+            # than crashing this grid's whole score. Re-weight the remaining
+            # terms proportionally so a missing signal doesn't silently zero
+            # out 55% of the score.
+            if TrafficLive_score is None:
+                weights = {"traffic_volume": 0.05, "number_vehicle": 0.30,
+                           "type_score": 0.25, "violation_score": 0.40}
+                final_score = (
+                    weights["traffic_volume"] * min(traffic_volume / 40000, 1.0)
+                    + weights["number_vehicle"] * number_vehicle_norm
+                    + weights["type_score"] * type_score
+                    + weights["violation_score"] * violation_score_norm
+                )
+            else:
+                final_score = (
+                    0.05 * min(traffic_volume / 40000, 1.0)
+                    + 0.20 * number_vehicle_norm
+                    + 0.15 * type_score
+                    + 0.30 * violation_score_norm
+                    + 0.30 * TrafficLive_score
+                )
+
+            print(
+                f"  {lat:.6f},{lon:.6f} -> traffic_volume={traffic_volume}, "
+                f"number_vehicle={number_vehicle} (norm={number_vehicle_norm:.3f}), "
+                f"type_score={type_score}, "
+                f"violation_score={violation_score} (norm={violation_score_norm:.3f}), "
+                f"TrafficLive_score={TrafficLive_score}"
             )
             score_count = 5
             append_update(

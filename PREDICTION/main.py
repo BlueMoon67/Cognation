@@ -100,6 +100,7 @@ def predict_for_all_grids(grid_blocks: list[tuple[float, float]]) -> None:
                 month=time_parts["month"],
                 day_of_week=time_parts["day_of_week"],
                 hour=time_parts["hour"],
+                weather_condition=None,
             )
             number_vehicle = predict(
                 "number_vehicle",
@@ -115,12 +116,8 @@ def predict_for_all_grids(grid_blocks: list[tuple[float, float]]) -> None:
                 {
                     "lat_grid": lat,
                     "lon_grid": lon,
-                    "year": time_parts["year"],
-                    "month": time_parts["month"],
-                    "day": datetime.datetime.now().day,
-                    "hour": time_parts["hour"],
-                    "minute": 0,
-                    "dayofweek": time_parts["day_of_week"],
+                    "hour_of_day": time_parts["hour"],
+                    "day_of_week": time_parts["day_of_week"],
                 },
             )
             violation_score = predict(
@@ -134,11 +131,11 @@ def predict_for_all_grids(grid_blocks: list[tuple[float, float]]) -> None:
             TrafficLive_score = get_congestion(lat, lon)
             print(f"  {lat:.6f},{lon:.6f} -> traffic_volume={traffic_volume}, number_vehicle={number_vehicle}, type_score={type_score}, violation_score={violation_score}, TrafficLive_score={TrafficLive_score}")
             final_score = (
-                 (0.1 / 40000) * traffic_volume
+                 (0.05 / 40000) * traffic_volume
                 + 0.2 * number_vehicle 
-                + 0.05 * type_score
-                + 0.35 * violation_score 
-                + 0.30 * TrafficLive_score
+                + 0.2 * type_score
+                + 0.1 * violation_score 
+                + 0.55 * TrafficLive_score
             )
             score_count = 5
             append_update(

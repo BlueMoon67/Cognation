@@ -100,7 +100,6 @@ def predict_for_all_grids(grid_blocks: list[tuple[float, float]]) -> None:
                 month=time_parts["month"],
                 day_of_week=time_parts["day_of_week"],
                 hour=time_parts["hour"],
-                weather_condition="Clear",
             )
             number_vehicle = predict(
                 "number_vehicle",

@@ -133,7 +133,7 @@ def predict_for_all_grids(grid_blocks: list[tuple[float, float]]) -> None:
             final_score = (
                  (0.05 / 40000) * traffic_volume
                 + 0.2 * number_vehicle 
-                + (0.2/10) * type_score
+                + (0.2) * type_score
                 + 0.1 * violation_score 
                 + 0.55 * TrafficLive_score
             )

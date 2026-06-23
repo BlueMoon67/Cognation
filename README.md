@@ -110,6 +110,7 @@ final_score = 0.05 × norm_volume
 ```
 
 ---
+<img width="680" height="760" alt="cognation_full_pipeline_flow" src="https://github.com/user-attachments/assets/f75cf892-2b31-4ee7-9822-a7d0c4d741a4" />
 
 ## Technology Stack
 

@@ -54,7 +54,7 @@ Illegal parking on Bengaluru's streets chokes intersections and triggers cascadi
                │
                ▼
         ┌─────────────┐
-        │  SQLite DB  │  (traffic.db — embedded, zero config)
+        │PostgreSQL DB  │  (traffic.db — embedded, zero config)
         └──────┬──────┘
                │
                ▼

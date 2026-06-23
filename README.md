@@ -442,9 +442,3 @@ VITE_API_URL = https://your-backend-service.up.railway.app
 - Multi-city support
 
 ---
-
-## Author
-
-**Mohammad Arham Reza**  
-B.Tech ECE, NIT Patna (2023–2027)  
-GitHub: [BlueMoon67](https://github.com/BlueMoon67)

@@ -1,423 +1,268 @@
-# Cognation — AI-Driven Illegal Parking Enforcement & Traffic Intelligence
+# 🚦 Cognation — AI Traffic Congestion Analyzer
 
-## Overview
+![Python](https://img.shields.io/badge/Python-52.5%25-3776AB?style=flat&logo=python&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-37.9%25-F7DF1E?style=flat&logo=javascript&logoColor=black)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-Backend-000000?style=flat&logo=flask&logoColor=white)
+![React](https://img.shields.io/badge/React-Frontend-61DAFB?style=flat&logo=react&logoColor=black)
+![Live Demo](https://img.shields.io/badge/Live%20Demo-cognation--red.vercel.app-brightgreen?style=flat)
 
-Cognation is an AI-driven system that detects illegal parking hotspots in Bengaluru and quantifies their impact on traffic flow, so traffic enforcement can be prioritized by location and time of day instead of relying on reactive, patrol-based policing.
-
-On-street illegal parking and spillover parking near commercial areas, metro stations, and event venues choke carriageways and intersections. Enforcement today is patrol-based and reactive, with no heatmap of parking violations against congestion impact and no data-driven way to prioritize where to send enforcement resources. Cognation addresses this by combining historical police violation data, live traffic congestion, weather, and vehicle/type patterns into a single per-grid risk score, refreshed continuously and shown on an interactive map.
-
-The project consists of:
-
-* **Backend (Flask + scikit-learn RandomForest models)** for grid-level violation and congestion scoring
-* **Frontend (React + Leaflet)** for map visualization, hotspot ranking, and nearest-station lookup
-* **SQLite** for storing live grid predictions (zero-config, embedded in the container)
-* **Dockerized infrastructure**, deployed as a single container (worker + API) on Railway
+> An AI-powered traffic congestion prediction and visualization platform for city planners, traffic authorities, and commuters.
 
 ---
 
-## Features
+## 📌 Overview
 
-### Parking Violation Intelligence
-
-* Trained on ~298,000 real police violation records (Jan–May, Bengaluru), covering vehicle type, violation type, junction, and timestamp.
-* Per-grid historical violation density, junction proximity, vehicle-type diversity, and weekend/weekday skew.
-* Hour-of-day patterns corrected to IST — the source timestamps are UTC, and earlier iterations of this model used the raw UTC hour, which skewed predicted enforcement activity by 5.5 hours.
-
-### Real-Time Traffic Visualization
-
-* Interactive map interface built with Leaflet.
-* Grid-based hotspot visualization with a ranked top-violation panel.
-* Nearest-police-station lookup per grid.
-
-### AI-Based Composite Risk Scoring
-
-* Three RandomForestRegressor models, retrained on grid-level historical context rather than raw coordinates alone, so predictions generalize to grids not seen during training (held-out-grid R² of 0.40–0.55, evaluated via grid-level GroupKFold, not random row splits):
-  * **Violation score** — exposure-normalized parking violation rate per grid/hour
-  * **Vehicle count** — predicted citation/vehicle volume per grid/hour/day-of-week
-  * **Vehicle-type diversity** — mix of vehicle types cited per grid/hour/day-of-week
-* A live traffic congestion signal (TomTom Traffic API) and live weather signal (OpenWeather), combined into a single `final_score` per grid.
-* `final_score` weights are tuned to reflect the problem statement — violation-related signals carry the majority of the weight:
-
-```
-final_score = 0.05 × norm_volume
-            + 0.20 × number_vehicle
-            + 0.15 × type_score
-            + 0.10 × violation_score
-            + 0.50 × traffic_live_score
-```
-
-### Multi-Source Data Integration
-
-* TomTom Traffic API (live congestion)
-* OpenWeather API (live weather conditions)
-* Historical police violation dataset (Jan–May, Bengaluru)
-* Bengaluru police station locations
-
-### Risk Categorization
-
-`final_score` is a 0–1 composite. Suggested bands:
-
-| final\_score | Risk Level |
-| ------------ | ---------- |
-| 0.00 – 0.25  | Low        |
-| 0.25 – 0.50  | Moderate   |
-| 0.50 – 0.75  | High       |
-| 0.75 – 1.00  | Critical   |
+Cognation combines historical traffic patterns, weather conditions, road network data, and live traffic feeds to generate congestion predictions across city grids. Results are rendered on an interactive map dashboard, letting users identify high-risk zones and make data-driven decisions in real time.
 
 ---
 
-## System Architecture
+## ✨ Features
 
-```
-+------------------+      +------------------+
-| TomTom Traffic   |      | OpenWeather API  |
-| API (live)       |      | (live)           |
-+------------------+      +------------------+
-         |                        |
-         v                        v
-+-----------------------------------------------------------+
-|               Prediction Worker (main.py)                 |
-|                                                           |
-|  Grid-level historical context (grid_features.csv)       |
-|  joined with live signals                                 |
-|                                                           |
-|  3× RandomForestRegressor models:                        |
-|   - voialtion.pkl       (violation rate per grid/hour)   |
-|   - number_vehicle.pkl  (vehicle/citation count)         |
-|   - TypeOfVehicle.pkl   (vehicle-type diversity)         |
-|                                                           |
-|  Min-max normalization → weighted final_score             |
-+-----------------------------------------------------------+
-         |
-         v
-+------------------+
-| SQLite           |
-| (traffic.db)     |
-+------------------+
-         |
-         v
-+------------------+
-| Flask Backend    |
-| (server.py)      |
-| PORT from env    |
-+------------------+
-         |
-         v
-+------------------+
-| React Frontend   |
-| Leaflet Maps     |
-+------------------+
-```
+### 🗺️ Real-Time Traffic Visualization
+- Interactive map interface powered by Leaflet
+- Grid-based congestion heatmap with dynamic marker updates
+- Color-coded risk levels updated from backend predictions
 
----
-<img width="680" height="760" alt="cognation_full_pipeline_flow" src="https://github.com/user-attachments/assets/f75cf892-2b31-4ee7-9822-a7d0c4d741a4" />
+### 🤖 AI-Based Congestion Prediction
+Machine learning models trained on:
+- Historical traffic data
+- Weather conditions
+- Temporal features (hour of day, day of week)
+- Road network information
 
-## Technology Stack
+### 🔗 Multi-Source Data Integration
+- Traffic APIs
+- Weather APIs (OpenWeather)
+- Parking and congestion datasets
+- Geographic location datasets
 
-**Backend:** Python, Flask, flask-cors, pandas, scikit-learn, joblib, python-dotenv
+### 📊 Risk Categorization
 
-**Frontend:** React, Vite, React Leaflet, Leaflet.js
+| Congestion Score | Risk Level |
+|:---:|:---:|
+| 0 – 25 | 🟢 Low |
+| 26 – 50 | 🟡 Moderate |
+| 51 – 75 | 🟠 High |
+| 76 – 100 | 🔴 Critical |
 
-**DevOps:** Docker, Railway (single-container worker + API)
-
-**APIs:** OpenWeather API, TomTom Traffic API
+### 🐳 Docker Support
+- One-command deployment via Docker Compose
+- Separate backend and frontend containers
+- Persistent SQLite database volume
 
 ---
 
-## Project Structure
+## 🏗️ System Architecture
+
+```
+  Traffic APIs ──┐
+                 ├──▶  Traffic Prediction Engine
+  Weather APIs ──┘      (Feature Engineering +
+                         Random Forest / XGBoost / Ensemble)
+                                    │
+                                    ▼
+                            SQLite Database
+                                    │
+                                    ▼
+                            Flask Backend
+                          (REST API: /traffic)
+                                    │
+                                    ▼
+                          React Frontend
+                          (Leaflet Map UI)
+```
+<img width="680" height="760" alt="cognation_full_pipeline_flow" src="https://github.com/user-attachments/assets/33cb5840-6ae7-4df8-9c90-584fec4783e1" />
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technologies |
+|---|---|
+| **Backend** | Python, Flask, Pandas, NumPy, Scikit-Learn, SQLite |
+| **Frontend** | React, Vite, React Leaflet, Leaflet.js |
+| **DevOps** | Docker, Docker Compose, Nginx |
+| **APIs** | OpenWeather API, Traffic API |
+
+---
+
+## 📁 Project Structure
 
 ```
 Cognation/
-│
-├── PREDICTION/
-│   ├── main.py              # Scoring loop: joins live + historical signals, writes final_score
-│   ├── server.py            # Flask API — /health and /traffic endpoints
-│   ├── prediction.py        # Model loading, grid-context joins, normalization
-│   ├── Weather.py           # Live weather lookup + traffic_volume model
-│   ├── TrafficLive.py       # TomTom congestion lookup
-│   ├── database.py          # Creates SQLite schema (traffic_predictions table)
-│   ├── insert.py            # Upserts predictions into SQLite
-│   ├── entrypoint.sh        # Runs worker loop + Flask in one container
-│   ├── Dockerfile
+├── docker-compose.yml
+├── PREDICTION/               # Flask backend + ML engine
+│   ├── server.py
+│   ├── main.py
 │   ├── requirements.txt
-│   └── model/
-│       ├── voialtion.pkl
-│       ├── number_vehicle.pkl
-│       ├── TypeOfVehicle.pkl
-│       ├── traffic_volume_model.pkl
-│       ├── grid_features.csv        # Per-grid historical context (1,409 grids)
-│       └── unique_grids.csv         # Bengaluru grid cell coordinates
-│
-└── traffic-map/
+│   ├── traffic.db
+│   ├── Dockerfile
+│   ├── .dockerignore
+│   └── .env
+└── traffic-map/              # React frontend
     ├── src/
     │   └── App.jsx
+    ├── public/
     ├── package.json
-    └── Dockerfile
+    ├── nginx.conf
+    ├── Dockerfile
+    └── .dockerignore
 ```
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-| Tool       | Version  | Install                                     |
-| ---------- | -------- | ------------------------------------------- |
-| Docker     | 20+      | https://docs.docker.com/get-docker/         |
-| Node.js    | 18+      | https://nodejs.org/ (frontend dev only)     |
-| Python     | 3.11+    | https://python.org (local dev only)         |
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Docker Compose
 
----
-
-### Option A — Run with Docker (recommended)
-
-This is the same path used on Railway. The single container runs both the prediction worker and the Flask API.
-
-**1. Clone the repo**
+Verify your installation:
 
 ```bash
-git clone https://github.com/BlueMoon67/Future_Analyzer.git
-cd Future_Analyzer
+docker --version
+docker compose version
 ```
 
-**2. Create your environment file**
+### 1. Configure Environment Variables
+
+Create a `.env` file inside the `PREDICTION/` directory:
 
 ```bash
-cp PREDICTION/.env.example PREDICTION/.env   # if example exists, otherwise:
-```
-
-Create `PREDICTION/.env`:
-
-```env
+# PREDICTION/.env
 WEATHER_API=your_openweather_api_key
-TRAFFIC_API=your_tomtom_api_key
-PREDICT_INTERVAL_SECONDS=120
-PORT=5000
+TRAFFIC_API=your_traffic_api_key
 ```
 
-> Get a free OpenWeather key at https://openweathermap.org/api  
-> Get a free TomTom key at https://developer.tomtom.com — make sure **Traffic API** is enabled on the key (Maps/Search-only keys return 403 on every traffic call).
+### 2. Build and Run
 
-**3. Build the Docker image**
+From the project root:
 
 ```bash
-cd PREDICTION
-docker build -t cognation-backend .
+docker compose up --build
 ```
 
-**4. Run the container**
+### 3. Access the Application
 
-```bash
-docker run -p 5000:5000 --env-file .env cognation-backend
-```
-
-**5. Verify it's running**
-
-```bash
-# Health check
-curl http://localhost:5000/health
-# → {"status": "ok"}
-
-# Traffic data (empty list until first prediction cycle completes ~2 min)
-curl http://localhost:5000/traffic
-# → [] initially, then [{grid_id, lat_grid, lon_grid, final_score, ...}, ...]
-```
-
-**6. Run the frontend**
-
-```bash
-cd ../traffic-map
-npm install
-VITE_API_URL=http://localhost:5000 npm run dev
-```
-
-Open http://localhost:5173 in your browser.
+| Service | URL |
+|---|---|
+| Frontend (React Map) | http://localhost:5173 |
+| Backend (Flask API) | http://localhost:5000 |
+| Traffic Endpoint | http://localhost:5000/traffic |
 
 ---
 
-### Option B — Run locally without Docker
-
-**Backend**
-
-```bash
-cd PREDICTION
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-# Create traffic.db schema
-python database.py
-
-# Run one prediction cycle manually
-python main.py
-
-# Start the Flask API
-python server.py
-```
-
-**Worker loop (separate terminal)**
-
-```bash
-source venv/bin/activate
-while true; do python main.py; sleep 120; done
-```
-
-**Frontend**
-
-```bash
-cd traffic-map
-npm install
-npm run dev
-```
-
----
-
-### Option C — Deploy to Railway
-
-**Backend service**
-
-1. In Railway, create a new service and connect your GitHub repo.
-2. Set the **Root Directory** to `PREDICTION`.
-3. Railway auto-detects the `Dockerfile` — no build command needed.
-4. Add these environment variables in Railway's Variables tab:
-
-```
-WEATHER_API      = your_openweather_api_key
-TRAFFIC_API      = your_tomtom_api_key
-PREDICT_INTERVAL_SECONDS = 120
-PORT             = (Railway sets this automatically — do not hardcode)
-```
-
-5. Set **Health Check Path** to `/health` in Railway's service settings.
-6. Deploy. The first prediction cycle takes ~10 minutes to score all 1,409 grids.
-
-**Frontend service**
-
-1. Create a second Railway service, set Root Directory to `traffic-map`.
-2. Railway auto-detects the `Dockerfile`.
-3. Add one environment variable:
-
-```
-VITE_API_URL = https://your-backend-service.up.railway.app
-```
-
-4. Deploy.
-
----
-
-## API Reference
-
-### `GET /health`
-
-Always returns 200. Used by Railway's health check. Safe to call before the first prediction cycle.
-
-```json
-{"status": "ok"}
-```
+## 📡 API Reference
 
 ### `GET /traffic`
 
-Returns all latest grid predictions. Returns `[]` before the first cycle completes.
+Returns congestion predictions for all tracked grid zones.
 
+**Response:**
 ```json
 [
   {
-    "grid_id": "12.975000_77.575000",
-    "lat_grid": 12.975,
-    "lon_grid": 77.575,
-    "traffic_volume": 24863.98,
-    "number_vehicle": 0.42,
-    "type_score": 0.69,
-    "violation_score": 0.58,
-    "traffic_live_score": 0.62,
-    "final_score": 0.57,
-    "timestamp": "2026-06-22T09:00:00"
+    "grid_id": "GRID_001",
+    "latitude": 12.9716,
+    "longitude": 77.5946,
+    "congestion_score": 68.5
   }
 ]
 ```
 
-All score fields are in `[0, 1]`. `final_score` is the weighted composite used for map coloring and enforcement ranking.
-
 ---
 
-## Model Training
+## ⚙️ Frontend Configuration
 
-The three RandomForest models are reproducible from the raw police violation CSV:
+The frontend dynamically resolves the backend URL:
 
+```javascript
+fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/traffic`)
+```
+
+For local development without Docker:
 ```bash
-cd PREDICTION/training
-python train_violation_models.py --input /path/to/police_violation_cleaned.csv
+npm run dev   # uses http://localhost:5000 by default
 ```
 
-This regenerates `voialtion.pkl`, `number_vehicle.pkl`, `TypeOfVehicle.pkl`, and the grid context CSVs.
-
-**Key design decisions:**
-
-* **Timezone correction** — source timestamps are UTC; all hour-of-day features are converted to IST (UTC+5:30) before training.
-* **Grid-level context over raw coordinates** — earlier models used only `{lat_grid, lon_grid, hour}`, making lat/lon carry 70–80% of feature importance and memorizing specific grids. Current models add historical violation density, junction proximity, vehicle-type diversity, and weekend skew, dropping lat/lon importance to ~5% and improving held-out-grid R² from near-zero to 0.40–0.55.
-* **Known limitation** — the strongest feature, historical violation count per grid, is derived from past enforcement at that grid. The models prioritize known hotspots by time-of-day well, but cannot independently discover new hotspots with no enforcement history.
+For Docker deployment, the `VITE_API_URL` is set via Docker Compose automatically.
 
 ---
 
-## Troubleshooting
+## 🗄️ Database Persistence
 
-### Server returns 502 on Railway
+Traffic predictions are stored in `traffic.db` (SQLite) and mounted as a Docker volume, ensuring:
+- Data survives container restarts
+- Easy local inspection
+- Persistent storage across deployments
 
-Check that `/health` is set as the Health Check Path in Railway service settings. The container needs ~30 seconds to start Flask before Railway's check fires.
+---
 
-### `GET /traffic` returns `[]`
-
-Normal on first boot. The prediction worker runs its first full cycle ~120 seconds after startup, scoring all 1,409 grids. Check Railway deploy logs for `[worker] cycle complete` to confirm it finished.
-
-### TomTom returning 403 on every grid
-
-Not a code issue. Check:
-
-1. **Traffic API is explicitly enabled** on your key in the TomTom developer dashboard — a key scoped to Maps/Search only will 403 on Traffic calls regardless of quota.
-2. **Daily quota** — TomTom free tier returns 403 (not 429) when the 2,500 req/day limit is exhausted.
-3. Test the key directly in a browser:
+## 🧠 ML Model Workflow
 
 ```
-https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?point=12.9716,77.5946&key=YOUR_KEY
+Data Collection
+    │  Historical traffic, weather, road network, temporal data
+    ▼
+Feature Engineering
+    │  Hour of day · Day of week · Weather · Traffic density · Coordinates
+    ▼
+ML Prediction
+    │  Congestion Score (0–100) per grid cell
+    ▼
+Visualization
+    │  Map markers · Heat zones · Color-coded levels
 ```
 
-When TomTom is down or quota-exceeded, `traffic_live_score` falls back to `0.0` for all grids — predictions still write to the DB, they just lack the live congestion signal.
+---
 
-### sklearn `UserWarning` flooding logs
+## 🔧 Troubleshooting
 
-If you see thousands of `X does not have valid feature names` warnings, they are harmless but can fill Railway's log buffer. Suppress them by adding to the top of `prediction.py` and `main.py`:
-
-```python
-import warnings
-warnings.filterwarnings("ignore")
-```
-
-### Frontend cannot reach backend
-
+**Containers not running?**
 ```bash
-curl https://your-backend.up.railway.app/health
+docker ps
+```
+Start Docker Desktop if no containers appear.
+
+**Backend not responding?**
+```bash
+docker compose logs backend
+```
+Then verify `http://localhost:5000/traffic` is accessible.
+
+**Frontend can't fetch data?**
+Check that the backend is running and the `/traffic` endpoint returns data.
+
+**Rebuild from scratch:**
+```bash
+docker compose down
+docker compose up --build
 ```
 
-If that fails, the backend isn't up. Check Railway deploy logs. If it succeeds but the frontend still fails, verify `VITE_API_URL` is set correctly in the frontend Railway service and that CORS is not blocking your frontend's origin.
+---
+
+## 🔮 Future Improvements
+
+- Real-time streaming traffic updates
+- Advanced deep learning models (LSTM / Transformer)
+- Route optimization engine
+- Smart parking integration
+- Incident detection & traffic anomaly alerts
+- Multi-city deployment
+- Live analytics dashboard
 
 ---
 
-## Future Improvements
-
-* Complete road-network feature extraction (intersection density, signal proximity) for all 1,409 grids, to enable genuine new-hotspot discovery
-* Bounding-box and top-N query parameters on `/traffic`
-* Caching/batching for TomTom and OpenWeather calls to reduce per-cycle API usage
-* Multi-city deployment
-* Real-time anomaly detection layered on the congestion signal
-
----
-
-## License
-
-This project is intended for educational, research, and traffic enforcement analytics purposes.
-
----
-
-## Author
+## 👤 Author
 
 **Mohammad Arham Reza**
+
+🌐 [cognation-red.vercel.app](https://cognation-red.vercel.app)
+
+---
+
+## 📄 License
+
+This project is intended for educational, research, and traffic analytics purposes.
